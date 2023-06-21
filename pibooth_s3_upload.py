@@ -76,5 +76,22 @@ def state_processing_exit(app, cfg):
         try:
             response = app.s3_client.upload_file(app.previous_picture_file, s3_bucket_name, upload_path)
             LOGGER.info("File uploaded to S3: " + upload_path)
+            url = previous_picture_url(
+                app.s3_client,
+                cfg.get(SECTION, 's3_server_url'),
+                s3_bucket_name,
+                upload_path
+            )
+            LOGGER.info("URL:" + url)
+            app.previous_picture_url = url
         except ClientError as e:
             LOGGER.error(e)
+
+
+def previous_picture_url(s3_client, s3_server_url, s3_bucket_name, upload_path):
+    if s3_server_url:
+        url = "%s/%s/%s" % (s3_server_url, s3_bucket_name, upload_path)
+    else:
+        location = s3_client.get_bucket_location(Bucket=s3_bucket_name)['LocationConstraint']
+        url = "https://s3-%s.amazonaws.com/%s/%s" % (location, s3_bucket_name, upload_path)
+    return url
